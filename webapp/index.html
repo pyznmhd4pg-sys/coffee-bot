@@ -1,9 +1,101 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <!-- ... (head и стили остаются прежними, добавь стиль для таблицы клиентов) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Админка Кофейни</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* ... (старые стили) ... */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            margin: 0;
+            padding: 16px;
+            -webkit-user-select: none; 
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: pan-y;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 16px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 8px;
+            padding: 4px;
+            overflow-x: auto;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--tg-theme-hint-color, #888);
+            white-space: nowrap;
+            font-size: 14px;
+        }
+        .tab.active {
+            background: var(--tg-theme-bg-color, #fff);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            color: var(--tg-theme-text-color, #000);
+        }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #888);
+        }
+        .order-items { width: 100%; margin-bottom: 8px; font-size: 15px; }
+        .order-total { font-weight: bold; font-size: 16px; text-align: right; width: 100%; margin-bottom: 8px;}
+        
+        .actions { display: flex; gap: 8px; width: 100%; margin-top: 8px;}
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            box-sizing: border-box;
+            font-size: 15px;
+            -webkit-user-select: text;
+            user-select: text;
+            pointer-events: auto;
+            margin-bottom: 0;
+        }
+        button {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        button.success { background: #34c759; }
+        
+        .menu-cat { margin-top: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; background: var(--tg-theme-secondary-bg-color, #f9f9f9); padding: 10px; border-radius: 8px; margin-bottom: 8px; }
+        .add-form { background: var(--tg-theme-secondary-bg-color, #f0f0f0); padding: 12px; border-radius: 12px; margin-top: 8px; }
+        .add-form input { margin-bottom: 8px; }
+
         .client-card { background: var(--tg-theme-secondary-bg-color, #f9f9f9); padding: 12px; border-radius: 8px; margin-bottom: 8px; }
         .client-name { font-weight: bold; font-size: 16px; margin-bottom: 4px; }
         .client-info { font-size: 14px; color: var(--tg-theme-hint-color, #888); }
@@ -11,46 +103,37 @@
 </head>
 <body>
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('orders')">Заказы</div>
-        <div class="tab" onclick="switchTab('archive')">Архив</div>
-        <div class="tab" onclick="switchTab('menu')">Меню</div>
-        <div class="tab" onclick="switchTab('clients')">Клиенты</div>
+        <div class="tab active" onclick="switchTab('orders', event)">Заказы</div>
+        <div class="tab" onclick="switchTab('archive', event)">Архив</div>
+        <div class="tab" onclick="switchTab('menu', event)">Меню</div>
+        <div class="tab" onclick="switchTab('clients', event)">Клиенты</div>
     </div>
 
-    <!-- ... (секции orders, archive, menu остаются) ... -->
+    <div id="section-orders" class="section active">
+        <div id="active-orders-list">Загрузка...</div>
+    </div>
+
+    <div id="section-archive" class="section">
+        <div id="archive-orders-list">Загрузка...</div>
+    </div>
+
+    <div id="section-menu" class="section">
+        <div class="add-form">
+            <input type="text" id="new-cat-name" placeholder="Название категории">
+            <button onclick="addCategory()">Добавить категорию</button>
+        </div>
+        <div id="menu-list"></div>
+    </div>
 
     <div id="section-clients" class="section">
         <div id="clients-list">Загрузка...</div>
     </div>
 
     <script>
-        // ... (старые функции switchTab, loadMenu, loadOrders, loadArchive, renderOrders, и т.д.) ...
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-        async function loadClients() {
-            const res = await fetch('/api/clients');
-            const data = await res.json();
-            const container = document.getElementById('clients-list');
-            
-            if (!data.clients || data.clients.length === 0) {
-                container.innerHTML = '<div style="text-align:center;color:#888;margin-top:20px;">Пока нет клиентов</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            data.clients.forEach(client => {
-                container.innerHTML += `
-                    <div class="client-card">
-                        <div class="client-name">${client.name}</div>
-                        <div class="client-info">📱 ${client.phone}</div>
-                        <div class="client-info">🔗 @${client.username || 'нет юзернейма'}</div>
-                        <div class="client-info">📦 Заказов: ${client.orders_count}</div>
-                    </div>
-                `;
-            });
-        }
-        
-        // Обновляем switchTab, чтобы он вызывал loadClients
-        function switchTab(tabName) {
+        function switchTab(tabName, event) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             event.target.classList.add('active');
@@ -62,7 +145,26 @@
             if (tabName === 'clients') loadClients();
         }
 
-        loadOrders();
-    </script>
-</body>
-</html>
+        async function loadOrders() {
+            const res = await fetch('/api/orders');
+            const data = await res.json();
+            const active = data.orders.filter(o => o.status !== 'done');
+            renderOrders(active, 'active-orders-list', true);
+        }
+
+        async function loadArchive() {
+            const res = await fetch('/api/orders');
+            const data = await res.json();
+            const archived = data.orders.filter(o => o.status === 'done');
+            renderOrders(archived, 'archive-orders-list', false);
+        }
+
+        function renderOrders(orders, containerId, showActions) {
+            const container = document.getElementById(containerId);
+            if (!orders.length) {
+                container.innerHTML = '<div style="text-align:center;color:#888;margin-top:20px;">Нет заказов</div>';
+                return;
+            }
+            container.innerHTML = '';
+            orders.forEach((order) => {
+                let itemsHtml = order.items.map(i => `<div
