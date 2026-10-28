@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Админка Кофейни</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -12,7 +12,13 @@
             color: var(--tg-theme-text-color, #000000);
             margin: 0;
             padding: 16px;
+            /* Отключаем случайные свайпы и выделения, чтобы поля ввода работали четко */
+            -webkit-user-select: none; 
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: pan-y; /* Разрешаем только вертикальный скролл */
         }
+        
         .tabs {
             display: flex;
             margin-bottom: 16px;
@@ -27,10 +33,12 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: 500;
+            color: var(--tg-theme-hint-color, #888);
         }
         .tab.active {
             background: var(--tg-theme-bg-color, #fff);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            color: var(--tg-theme-text-color, #000);
         }
         .section { display: none; }
         .section.active { display: block; }
@@ -56,20 +64,27 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 500;
+            font-size: 14px;
         }
         button.danger { background: #ff3b30; }
-        button.small { padding: 4px 8px; font-size: 12px; }
+        button.small { padding: 6px 10px; font-size: 13px; margin-left: 4px; }
         
         input {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             margin-bottom: 8px;
             border-radius: 8px;
             border: 1px solid var(--tg-theme-hint-color, #ccc);
             background: var(--tg-theme-bg-color, #fff);
             color: var(--tg-theme-text-color, #000);
             box-sizing: border-box;
+            font-size: 15px;
+            /* Принудительно разрешаем ввод и выделение текста */
+            -webkit-user-select: text;
+            user-select: text;
+            pointer-events: auto;
         }
+        
         .add-form {
             background: var(--tg-theme-secondary-bg-color, #f0f0f0);
             padding: 12px;
@@ -77,6 +92,27 @@
             margin-bottom: 16px;
         }
         .orders-list .card { flex-direction: column; align-items: flex-start; }
+        
+        /* Стили для заказов */
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #888);
+        }
+        .order-items {
+            width: 100%;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        .order-total {
+            font-weight: bold;
+            font-size: 16px;
+            text-align: right;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
