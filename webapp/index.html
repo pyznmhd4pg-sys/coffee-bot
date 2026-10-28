@@ -4,102 +4,246 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админка Кофейни</title>
-    <!-- Подключаем скрипт Telegram Mini Apps -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
             margin: 0;
             padding: 16px;
         }
-        h1 {
-            font-size: 20px;
+        .tabs {
+            display: flex;
             margin-bottom: 16px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 8px;
+            padding: 4px;
         }
-        .order-card {
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .tab.active {
+            background: var(--tg-theme-bg-color, #fff);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
             border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-        }
-        .order-header {
+            padding: 12px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+        }
+        .card-info { flex: 1; }
+        .card-title { font-weight: bold; font-size: 15px; }
+        .card-price { color: var(--tg-theme-hint-color, #888); font-size: 14px; }
+        
+        button {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button.danger { background: #ff3b30; }
+        button.small { padding: 4px 8px; font-size: 12px; }
+        
+        input {
+            width: 100%;
+            padding: 8px;
             margin-bottom: 8px;
-            font-size: 14px;
-            color: var(--tg-theme-hint-color, #888888);
+            border-radius: 8px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            box-sizing: border-box;
         }
-        .order-items {
-            margin-bottom: 8px;
-            font-size: 15px;
+        .add-form {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
         }
-        .order-total {
-            font-weight: bold;
-            font-size: 16px;
-            text-align: right;
-        }
-        .empty-state {
-            text-align: center;
-            color: var(--tg-theme-hint-color, #888);
-            margin-top: 40px;
-        }
+        .orders-list .card { flex-direction: column; align-items: flex-start; }
     </style>
 </head>
 <body>
-    <h1>☕ Заказы</h1>
-    <div id="orders-list">
-        <div class="empty-state">Загрузка...</div>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('menu')">Меню</div>
+        <div class="tab" onclick="switchTab('orders')">Заказы</div>
+    </div>
+
+    <!-- Вкладка МЕНЮ -->
+    <div id="section-menu" class="section active">
+        <div class="add-form">
+            <input type="text" id="new-cat-name" placeholder="Название категории (напр. Десерты)">
+            <button onclick="addCategory()">Добавить категорию</button>
+        </div>
+        <div id="menu-list"></div>
+    </div>
+
+    <!-- Вкладка ЗАКАЗЫ -->
+    <div id="section-orders" class="section">
+        <div id="orders-list" class="orders-list">
+            <div style="text-align: center; color: #888; margin-top: 20px;">Загрузка...</div>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`section-${tabName}`).classList.add('active');
+
+            if (tabName === 'menu') loadMenu();
+            if (tabName === 'orders') loadOrders();
+        }
+
+        // --- УПРАВЛЕНИЕ МЕНЮ ---
+        async function loadMenu() {
+            const res = await fetch('/api/menu');
+            const menu = await res.json();
+            const container = document.getElementById('menu-list');
+            container.innerHTML = '';
+
+            for (const [catId, cat] of Object.entries(menu)) {
+                const catDiv = document.createElement('div');
+                catDiv.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+                        <h3 style="margin:0;">${cat.name}</h3>
+                        <button class="danger small" onclick="deleteCategory('${catId}')">Удалить</button>
+                    </div>
+                `;
+                
+                const itemsDiv = document.createElement('div');
+                for (const [itemId, item] of Object.entries(cat.items)) {
+                    itemsDiv.innerHTML += `
+                        <div class="card">
+                            <div class="card-info">
+                                <div class="card-title">${item.name}</div>
+                                <div class="card-price">${item.price}₽</div>
+                            </div>
+                            <div>
+                                <button class="small" onclick="editPrice('${catId}', '${itemId}', ${item.price})">Изм. цену</button>
+                                <button class="danger small" onclick="deleteItem('${catId}', '${itemId}')">X</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                itemsDiv.innerHTML += `
+                    <div class="add-form" style="margin-top:8px; background:none; border: 1px dashed #ccc;">
+                        <input type="text" id="new-item-name-${catId}" placeholder="Название блюда">
+                        <input type="number" id="new-item-price-${catId}" placeholder="Цена (₽)">
+                        <button class="small" onclick="addItem('${catId}')">Добавить позицию</button>
+                    </div>
+                `;
+                
+                catDiv.appendChild(itemsDiv);
+                container.appendChild(catDiv);
+            }
+        }
+
+        async function addCategory() {
+            const name = document.getElementById('new-cat-name').value;
+            if (!name) return;
+            await fetch('/api/category', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name})
+            });
+            document.getElementById('new-cat-name').value = '';
+            loadMenu();
+        }
+
+        async function deleteCategory(catId) {
+            if (!confirm('Удалить категорию со всеми товарами?')) return;
+            await fetch(`/api/category/${catId}`, {method: 'DELETE'});
+            loadMenu();
+        }
+
+        async function addItem(catId) {
+            const name = document.getElementById(`new-item-name-${catId}`).value;
+            const price = document.getElementById(`new-item-price-${catId}`).value;
+            if (!name || !price) return;
+            await fetch(`/api/category/${catId}/item`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, price: parseInt(price)})
+            });
+            loadMenu();
+        }
+
+        async function deleteItem(catId, itemId) {
+            if (!confirm('Удалить позицию?')) return;
+            await fetch(`/api/category/${catId}/item/${itemId}`, {method: 'DELETE'});
+            loadMenu();
+        }
+
+        async function editPrice(catId, itemId, currentPrice) {
+            const newPrice = prompt('Введите новую цену:', currentPrice);
+            if (newPrice === null || newPrice === "") return;
+            await fetch(`/api/category/${catId}/item/${itemId}/price`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({price: parseInt(newPrice)})
+            });
+            loadMenu();
+        }
+
+        // --- ЗАКАЗЫ ---
         async function loadOrders() {
             try {
                 const response = await fetch('/api/orders');
                 const data = await response.json();
                 renderOrders(data.orders);
             } catch (e) {
-                document.getElementById('orders-list').innerHTML = '<div class="empty-state">Ошибка загрузки заказов</div>';
+                document.getElementById('orders-list').innerHTML = '<div style="text-align:center;">Ошибка загрузки</div>';
             }
         }
 
         function renderOrders(orders) {
             const container = document.getElementById('orders-list');
-            
             if (!orders || orders.length === 0) {
-                container.innerHTML = '<div class="empty-state">Пока нет заказов</div>';
+                container.innerHTML = '<div style="text-align: center; color: #888;">Пока нет заказов</div>';
                 return;
             }
-
             container.innerHTML = '';
             orders.reverse().forEach(order => {
-                const card = document.createElement('div');
-                card.className = 'order-card';
-                
                 let itemsHtml = '';
                 order.items.forEach(item => {
                     itemsHtml += `<div>• ${item.name} x${item.qty} = ${item.price}₽</div>`;
-                    if (item.syrup) itemsHtml += `<div style="padding-left: 16px; font-size: 13px; color: #888;">└ Сироп ${item.syrup}</div>`;
-                    if (item.cinnamon) itemsHtml += `<div style="padding-left: 16px; font-size: 13px; color: #888;">└ Корица</div>`;
                 });
-
-                card.innerHTML = `
-                    <div class="order-header">
-                        <span>Клиент: @${order.username || order.user_id}</span>
-                        <span>${order.date}</span>
+                container.innerHTML += `
+                    <div class="card">
+                        <div class="order-header">
+                            <span>@${order.username || order.user_id}</span>
+                            <span>${order.date}</span>
+                        </div>
+                        <div class="order-items">${itemsHtml}</div>
+                        <div class="order-total">Итого: ${order.total}₽</div>
                     </div>
-                    <div class="order-items">${itemsHtml}</div>
-                    <div class="order-total">Итого: ${order.total}₽</div>
                 `;
-                container.appendChild(card);
             });
         }
 
-        loadOrders();
+        loadMenu(); // Загружаем меню по умолчанию при старте
     </script>
 </body>
 </html>
