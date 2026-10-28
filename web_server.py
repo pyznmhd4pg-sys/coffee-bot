@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
+from typing import List, Optional
 import uvicorn
 
 app = FastAPI()
@@ -12,6 +13,7 @@ app = FastAPI()
 BASE_DIR = Path(__file__).resolve().parent
 WEBAPP_DIR = BASE_DIR / "webapp"
 MENU_FILE = BASE_DIR / "menu.json"
+ORDERS_FILE = BASE_DIR / "orders.json"
 
 app.mount("/webapp", StaticFiles(directory=WEBAPP_DIR), name="webapp")
 
@@ -25,6 +27,20 @@ class ItemCreate(BaseModel):
 
 class PriceUpdate(BaseModel):
     price: int
+
+class OrderItem(BaseModel):
+    name: str
+    qty: int
+    price: int
+    syrup: Optional[str] = None
+    cinnamon: bool = False
+
+class OrderCreate(BaseModel):
+    user_id: int
+    username: Optional[str] = None
+    date: str
+    items: List[OrderItem]
+    total: int
 
 # --- Инициализация меню (если файла нет, создаем дефолтное) ---
 DEFAULT_MENU = {
@@ -56,7 +72,7 @@ def save_menu(menu):
     with open(MENU_FILE, "w", encoding="utf-8") as f:
         json.dump(menu, f, ensure_ascii=False, indent=2)
 
-# --- API для Mini App ---
+# --- API ---
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
@@ -69,7 +85,6 @@ async def get_menu():
 @app.post("/api/category")
 async def add_category(cat: CategoryCreate):
     menu = load_menu()
-    # Генерируем простой ID на основе времени
     cat_id = f"cat_{int(os.urandom(2).hex(), 16)}"
     menu[cat_id] = {"name": cat.name, "items": {}}
     save_menu(menu)
@@ -108,6 +123,36 @@ async def update_price(cat_id: str, item_id: str, data: PriceUpdate):
     if cat_id in menu and item_id in menu[cat_id]["items"]:
         menu[cat_id]["items"][item_id]["price"] = data.price
         save_menu(menu)
+    return {"status": "ok"}
+
+# --- API для ЗАКАЗОВ ---
+
+@app.get("/api/orders")
+async def get_orders():
+    if not os.path.exists(ORDERS_FILE):
+        return {"orders": []}
+    with open(ORDERS_FILE, "r", encoding="utf-8") as f:
+        try:
+            orders = json.load(f)
+        except json.JSONDecodeError:
+            orders = []
+    return {"orders": orders}
+
+@app.post("/api/orders")
+async def create_order(order: OrderCreate):
+    orders = []
+    if os.path.exists(ORDERS_FILE):
+        with open(ORDERS_FILE, "r", encoding="utf-8") as f:
+            try:
+                orders = json.load(f)
+            except json.JSONDecodeError:
+                orders = []
+                
+    orders.append(order.model_dump())
+    
+    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(orders, f, ensure_ascii=False, indent=2)
+        
     return {"status": "ok"}
 
 if __name__ == "__main__":
