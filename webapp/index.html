@@ -1,285 +1,68 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Админка Кофейни</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- ... (head и стили остаются прежними, добавь стиль для таблицы клиентов) ... -->
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            margin: 0;
-            padding: 16px;
-            /* Отключаем случайные свайпы и выделения, чтобы поля ввода работали четко */
-            -webkit-user-select: none; 
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: pan-y; /* Разрешаем только вертикальный скролл */
-        }
-        
-        .tabs {
-            display: flex;
-            margin-bottom: 16px;
-            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            border-radius: 8px;
-            padding: 4px;
-        }
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            color: var(--tg-theme-hint-color, #888);
-        }
-        .tab.active {
-            background: var(--tg-theme-bg-color, #fff);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            color: var(--tg-theme-text-color, #000);
-        }
-        .section { display: none; }
-        .section.active { display: block; }
-        
-        .card {
-            background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .card-info { flex: 1; }
-        .card-title { font-weight: bold; font-size: 15px; }
-        .card-price { color: var(--tg-theme-hint-color, #888); font-size: 14px; }
-        
-        button {
-            background: var(--tg-theme-button-color, #2481cc);
-            color: var(--tg-theme-button-text-color, #fff);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        button.danger { background: #ff3b30; }
-        button.small { padding: 6px 10px; font-size: 13px; margin-left: 4px; }
-        
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            background: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-            box-sizing: border-box;
-            font-size: 15px;
-            /* Принудительно разрешаем ввод и выделение текста */
-            -webkit-user-select: text;
-            user-select: text;
-            pointer-events: auto;
-        }
-        
-        .add-form {
-            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-        }
-        .orders-list .card { flex-direction: column; align-items: flex-start; }
-        
-        /* Стили для заказов */
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: var(--tg-theme-hint-color, #888);
-        }
-        .order-items {
-            width: 100%;
-            margin-bottom: 8px;
-            font-size: 15px;
-        }
-        .order-total {
-            font-weight: bold;
-            font-size: 16px;
-            text-align: right;
-            width: 100%;
-        }
+        /* ... (старые стили) ... */
+        .client-card { background: var(--tg-theme-secondary-bg-color, #f9f9f9); padding: 12px; border-radius: 8px; margin-bottom: 8px; }
+        .client-name { font-weight: bold; font-size: 16px; margin-bottom: 4px; }
+        .client-info { font-size: 14px; color: var(--tg-theme-hint-color, #888); }
     </style>
 </head>
 <body>
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('menu')">Меню</div>
-        <div class="tab" onclick="switchTab('orders')">Заказы</div>
+        <div class="tab active" onclick="switchTab('orders')">Заказы</div>
+        <div class="tab" onclick="switchTab('archive')">Архив</div>
+        <div class="tab" onclick="switchTab('menu')">Меню</div>
+        <div class="tab" onclick="switchTab('clients')">Клиенты</div>
     </div>
 
-    <!-- Вкладка МЕНЮ -->
-    <div id="section-menu" class="section active">
-        <div class="add-form">
-            <input type="text" id="new-cat-name" placeholder="Название категории (напр. Десерты)">
-            <button onclick="addCategory()">Добавить категорию</button>
-        </div>
-        <div id="menu-list"></div>
-    </div>
+    <!-- ... (секции orders, archive, menu остаются) ... -->
 
-    <!-- Вкладка ЗАКАЗЫ -->
-    <div id="section-orders" class="section">
-        <div id="orders-list" class="orders-list">
-            <div style="text-align: center; color: #888; margin-top: 20px;">Загрузка...</div>
-        </div>
+    <div id="section-clients" class="section">
+        <div id="clients-list">Загрузка...</div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        // ... (старые функции switchTab, loadMenu, loadOrders, loadArchive, renderOrders, и т.д.) ...
 
+        async function loadClients() {
+            const res = await fetch('/api/clients');
+            const data = await res.json();
+            const container = document.getElementById('clients-list');
+            
+            if (!data.clients || data.clients.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:#888;margin-top:20px;">Пока нет клиентов</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            data.clients.forEach(client => {
+                container.innerHTML += `
+                    <div class="client-card">
+                        <div class="client-name">${client.name}</div>
+                        <div class="client-info">📱 ${client.phone}</div>
+                        <div class="client-info">🔗 @${client.username || 'нет юзернейма'}</div>
+                        <div class="client-info">📦 Заказов: ${client.orders_count}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        // Обновляем switchTab, чтобы он вызывал loadClients
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            
             event.target.classList.add('active');
             document.getElementById(`section-${tabName}`).classList.add('active');
 
             if (tabName === 'menu') loadMenu();
             if (tabName === 'orders') loadOrders();
+            if (tabName === 'archive') loadArchive();
+            if (tabName === 'clients') loadClients();
         }
 
-        // --- УПРАВЛЕНИЕ МЕНЮ ---
-        async function loadMenu() {
-            const res = await fetch('/api/menu');
-            const menu = await res.json();
-            const container = document.getElementById('menu-list');
-            container.innerHTML = '';
-
-            for (const [catId, cat] of Object.entries(menu)) {
-                const catDiv = document.createElement('div');
-                catDiv.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
-                        <h3 style="margin:0;">${cat.name}</h3>
-                        <button class="danger small" onclick="deleteCategory('${catId}')">Удалить</button>
-                    </div>
-                `;
-                
-                const itemsDiv = document.createElement('div');
-                for (const [itemId, item] of Object.entries(cat.items)) {
-                    itemsDiv.innerHTML += `
-                        <div class="card">
-                            <div class="card-info">
-                                <div class="card-title">${item.name}</div>
-                                <div class="card-price">${item.price}₽</div>
-                            </div>
-                            <div>
-                                <button class="small" onclick="editPrice('${catId}', '${itemId}', ${item.price})">Изм. цену</button>
-                                <button class="danger small" onclick="deleteItem('${catId}', '${itemId}')">X</button>
-                            </div>
-                        </div>
-                    `;
-                }
-                itemsDiv.innerHTML += `
-                    <div class="add-form" style="margin-top:8px; background:none; border: 1px dashed #ccc;">
-                        <input type="text" id="new-item-name-${catId}" placeholder="Название блюда">
-                        <input type="number" id="new-item-price-${catId}" placeholder="Цена (₽)">
-                        <button class="small" onclick="addItem('${catId}')">Добавить позицию</button>
-                    </div>
-                `;
-                
-                catDiv.appendChild(itemsDiv);
-                container.appendChild(catDiv);
-            }
-        }
-
-        async function addCategory() {
-            const name = document.getElementById('new-cat-name').value;
-            if (!name) return;
-            await fetch('/api/category', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name})
-            });
-            document.getElementById('new-cat-name').value = '';
-            loadMenu();
-        }
-
-        async function deleteCategory(catId) {
-            if (!confirm('Удалить категорию со всеми товарами?')) return;
-            await fetch(`/api/category/${catId}`, {method: 'DELETE'});
-            loadMenu();
-        }
-
-        async function addItem(catId) {
-            const name = document.getElementById(`new-item-name-${catId}`).value;
-            const price = document.getElementById(`new-item-price-${catId}`).value;
-            if (!name || !price) return;
-            await fetch(`/api/category/${catId}/item`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name, price: parseInt(price)})
-            });
-            loadMenu();
-        }
-
-        async function deleteItem(catId, itemId) {
-            if (!confirm('Удалить позицию?')) return;
-            await fetch(`/api/category/${catId}/item/${itemId}`, {method: 'DELETE'});
-            loadMenu();
-        }
-
-        async function editPrice(catId, itemId, currentPrice) {
-            const newPrice = prompt('Введите новую цену:', currentPrice);
-            if (newPrice === null || newPrice === "") return;
-            await fetch(`/api/category/${catId}/item/${itemId}/price`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({price: parseInt(newPrice)})
-            });
-            loadMenu();
-        }
-
-        // --- ЗАКАЗЫ ---
-        async function loadOrders() {
-            try {
-                const response = await fetch('/api/orders');
-                const data = await response.json();
-                renderOrders(data.orders);
-            } catch (e) {
-                document.getElementById('orders-list').innerHTML = '<div style="text-align:center;">Ошибка загрузки</div>';
-            }
-        }
-
-        function renderOrders(orders) {
-            const container = document.getElementById('orders-list');
-            if (!orders || orders.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #888;">Пока нет заказов</div>';
-                return;
-            }
-            container.innerHTML = '';
-            orders.reverse().forEach(order => {
-                let itemsHtml = '';
-                order.items.forEach(item => {
-                    itemsHtml += `<div>• ${item.name} x${item.qty} = ${item.price}₽</div>`;
-                });
-                container.innerHTML += `
-                    <div class="card">
-                        <div class="order-header">
-                            <span>@${order.username || order.user_id}</span>
-                            <span>${order.date}</span>
-                        </div>
-                        <div class="order-items">${itemsHtml}</div>
-                        <div class="order-total">Итого: ${order.total}₽</div>
-                    </div>
-                `;
-            });
-        }
-
-        loadMenu(); // Загружаем меню по умолчанию при старте
+        loadOrders();
     </script>
 </body>
 </html>
