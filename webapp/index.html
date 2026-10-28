@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админка Кофейни</title>
+    <!-- Подключаем скрипт Telegram Mini Apps -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            margin: 0;
+            padding: 16px;
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        .order-card {
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #888888);
+        }
+        .order-items {
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        .order-total {
+            font-weight: bold;
+            font-size: 16px;
+            text-align: right;
+        }
+        .empty-state {
+            text-align: center;
+            color: var(--tg-theme-hint-color, #888);
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>☕ Заказы</h1>
+    <div id="orders-list">
+        <div class="empty-state">Загрузка...</div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        async function loadOrders() {
+            try {
+                const response = await fetch('/api/orders');
+                const data = await response.json();
+                renderOrders(data.orders);
+            } catch (e) {
+                document.getElementById('orders-list').innerHTML = '<div class="empty-state">Ошибка загрузки заказов</div>';
+            }
+        }
+
+        function renderOrders(orders) {
+            const container = document.getElementById('orders-list');
+            
+            if (!orders || orders.length === 0) {
+                container.innerHTML = '<div class="empty-state">Пока нет заказов</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            orders.reverse().forEach(order => {
+                const card = document.createElement('div');
+                card.className = 'order-card';
+                
+                let itemsHtml = '';
+                order.items.forEach(item => {
+                    itemsHtml += `<div>• ${item.name} x${item.qty} = ${item.price}₽</div>`;
+                    if (item.syrup) itemsHtml += `<div style="padding-left: 16px; font-size: 13px; color: #888;">└ Сироп ${item.syrup}</div>`;
+                    if (item.cinnamon) itemsHtml += `<div style="padding-left: 16px; font-size: 13px; color: #888;">└ Корица</div>`;
+                });
+
+                card.innerHTML = `
+                    <div class="order-header">
+                        <span>Клиент: @${order.username || order.user_id}</span>
+                        <span>${order.date}</span>
+                    </div>
+                    <div class="order-items">${itemsHtml}</div>
+                    <div class="order-total">Итого: ${order.total}₽</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        loadOrders();
+    </script>
+</body>
+</html>
